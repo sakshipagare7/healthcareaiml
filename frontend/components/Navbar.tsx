@@ -58,10 +58,14 @@ export default function Navbar({ title, subtitle, onOpenMobileMenu }: NavbarProp
           {/* User Badge & Direct Logout Button */}
           {user && (
             <div className="flex items-center gap-2 sm:gap-3 pl-2 sm:pl-3 border-l border-slate-200">
-              <div className="hidden sm:flex items-center gap-2 bg-slate-100/80 px-2.5 py-1 rounded-lg border border-slate-200/80">
+              <Link
+                href="/settings"
+                className="hidden sm:flex items-center gap-2 bg-slate-100/80 hover:bg-slate-200/80 px-2.5 py-1 rounded-lg border border-slate-200/80 transition-colors cursor-pointer group"
+                title="Account Settings"
+              >
                 <span className="inline-block w-2 h-2 rounded-full bg-teal-500 animate-pulse"></span>
-                <span className="text-xs font-bold text-slate-700 truncate max-w-[120px]">{user.full_name}</span>
-              </div>
+                <span className="text-xs font-bold text-slate-700 truncate max-w-[120px] group-hover:text-teal-700">{user.full_name}</span>
+              </Link>
 
               {/* Logout Button */}
               <button

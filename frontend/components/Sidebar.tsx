@@ -15,7 +15,8 @@ import {
   ShieldAlert,
   User as UserIcon,
   PhoneCall,
-  X
+  X,
+  Settings
 } from 'lucide-react';
 import EmergencyModal from './EmergencyModal';
 
@@ -61,6 +62,11 @@ export default function Sidebar({ hasHealthProfile, isOpen = false, onClose }: S
       name: 'Models & Metrics',
       href: '/models',
       icon: Cpu,
+    },
+    {
+      name: 'Account Settings',
+      href: '/settings',
+      icon: Settings,
     },
   ];
 
@@ -153,15 +159,21 @@ export default function Sidebar({ hasHealthProfile, isOpen = false, onClose }: S
 
       {/* Authenticated User & Logout */}
       <div className="p-3.5 border-t border-navy-800/80 bg-navy-950/60">
-        <div className="flex items-center gap-3 mb-2.5">
-          <div className="w-8 h-8 rounded-full bg-teal-500/20 border border-teal-500/30 flex items-center justify-center text-teal-400 text-xs font-bold shrink-0">
+        <Link
+          href="/settings"
+          onClick={() => { if (isMobile) onClose?.(); }}
+          className="flex items-center gap-3 mb-2.5 p-1 -m-1 rounded-xl hover:bg-white/5 transition-colors group cursor-pointer"
+          title="Manage Account Settings"
+        >
+          <div className="w-8 h-8 rounded-full bg-teal-500/20 border border-teal-500/30 flex items-center justify-center text-teal-400 text-xs font-bold shrink-0 group-hover:scale-105 transition-transform">
             {user?.full_name ? user.full_name.charAt(0).toUpperCase() : <UserIcon className="w-4 h-4" />}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-bold text-white truncate">{user?.full_name || 'Patient'}</p>
+            <p className="text-xs font-bold text-white truncate group-hover:text-teal-300 transition-colors">{user?.full_name || 'Patient'}</p>
             <p className="text-[10px] text-navy-300 truncate">{user?.email}</p>
           </div>
-        </div>
+          <Settings className="w-3.5 h-3.5 text-navy-400 group-hover:text-teal-300 transition-colors shrink-0" />
+        </Link>
         <button
           onClick={() => {
             if (isMobile) onClose?.();

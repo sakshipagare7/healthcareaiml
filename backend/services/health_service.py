@@ -66,3 +66,11 @@ def update_health_profile(db: Session, user_id: int, profile_id: int, data: Heal
     db.commit()
     db.refresh(profile)
     return profile
+
+def delete_health_profile(db: Session, user_id: int, profile_id: int) -> dict:
+    """Delete an existing health profile belonging strictly to the user"""
+    profile = get_user_profile_by_id(db, user_id, profile_id)
+    db.delete(profile)
+    db.commit()
+    return {"message": "Health reading deleted successfully.", "id": profile_id}
+

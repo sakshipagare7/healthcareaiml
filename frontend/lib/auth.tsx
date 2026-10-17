@@ -10,6 +10,7 @@ interface AuthContextType {
   login: (data: any) => Promise<void>;
   register: (data: any) => Promise<void>;
   logout: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
 
@@ -71,8 +72,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const deleteAccount = async () => {
+    try {
+      await api.deleteAccount();
+    } catch (e) {
+      console.error('Delete account error:', e);
+      throw e;
+    } finally {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('access_token');
+      }
+      setUser(null);
+      window.location.href = '/';
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, deleteAccount, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

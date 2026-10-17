@@ -270,6 +270,9 @@ export const api = {
   }),
 
   getMe: () => request<User>('/auth/me'),
+  deleteAccount: () => request<{ message: string }>('/auth/me', {
+    method: 'DELETE',
+  }),
 
   // Health Profile
   getCurrentProfile: () => request<HealthProfile | null>('/health/profile'),
@@ -282,6 +285,9 @@ export const api = {
   updateProfile: (id: number, data: any) => request<HealthProfile>(`/health/profile/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),
+  }),
+  deleteProfile: (id: number) => request<{ message: string; id: number }>(`/health/profile/${id}`, {
+    method: 'DELETE',
   }),
 
   // Assessments

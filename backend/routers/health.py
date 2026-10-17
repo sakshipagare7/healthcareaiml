@@ -10,7 +10,8 @@ from services.health_service import (
     update_health_profile,
     get_user_latest_profile,
     get_user_profile_by_id,
-    get_user_health_history
+    get_user_health_history,
+    delete_health_profile
 )
 
 router = APIRouter(prefix="/api/health", tags=["Health Information"])
@@ -80,3 +81,15 @@ def update_existing_health_profile(
     """
     profile = update_health_profile(db, current_user.id, profile_id, profile_in)
     return HealthProfileResponse.model_validate(profile)
+
+@router.delete("/profile/{profile_id}")
+def delete_existing_health_profile(
+    profile_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Delete a specific health reading belonging strictly to authenticated user.
+    """
+    return delete_health_profile(db, current_user.id, profile_id)
+

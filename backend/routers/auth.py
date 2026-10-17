@@ -83,3 +83,19 @@ def logout(response: Response):
 @router.get("/me", response_model=UserResponse)
 def get_current_user_profile(current_user: User = Depends(get_current_user)):
     return UserResponse.model_validate(current_user)
+
+@router.delete("/me")
+def delete_current_user_account(
+    response: Response,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Safely delete the authenticated user's account and all associated
+    cascading records (health profiles, assessments, prediction results, medications).
+    """
+    db.delete(current_user)
+    db.commit()
+    response.delete_cookie(key=COOKIE_NAME, samesite="lax", secure=IS_PROD)
+    return {"message": "Account and all associated private health records have been permanently deleted."}
+
