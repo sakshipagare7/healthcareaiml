@@ -37,30 +37,30 @@ export default function EmergencyModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="relative w-full max-w-lg bg-white rounded-3xl border border-red-300 shadow-2xl overflow-hidden">
+      <div className="relative w-full max-w-lg bg-white rounded-3xl border border-red-300 shadow-2xl overflow-hidden max-h-[92vh] flex flex-col">
         {/* Header Banner */}
-        <div className="p-6 bg-red-600 text-white flex items-center justify-between">
+        <div className="p-4 sm:p-6 bg-red-600 text-white flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center shrink-0">
               <ShieldAlert className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h3 className="text-base font-extrabold tracking-wide uppercase">
+              <h3 className="text-sm sm:text-base font-extrabold tracking-wide uppercase">
                 {title}
               </h3>
-              <p className="text-xs text-red-100">National Emergency Support Protocol</p>
+              <p className="text-[11px] sm:text-xs text-red-100">National Emergency Support Protocol</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-5">
+        <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto flex-1">
           {/* Why Edge / Browser did not dial notice */}
           <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 flex items-start gap-3 text-xs text-amber-900 leading-relaxed">
             <Laptop className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />

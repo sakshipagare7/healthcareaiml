@@ -66,19 +66,19 @@ export default function MedicalIdCard({ user, profile }: MedicalIdCardProps) {
   return (
     <div className="medical-id-container">
       {/* Action Bar (hidden on print) */}
-      <div className="flex items-center justify-between mb-3 print:hidden">
+      <div className="flex flex-wrap items-center justify-between gap-2.5 mb-3 print:hidden">
         <div className="flex items-center gap-2">
-          <span className="p-1.5 rounded-lg bg-red-100 text-red-700">
+          <span className="p-1.5 rounded-lg bg-red-100 text-red-700 shrink-0">
             <ShieldAlert className="w-4 h-4" />
           </span>
-          <h3 className="text-sm font-bold text-slate-900">
-            Emergency Medical ID (ICE – In Case of Emergency)
+          <h3 className="text-xs sm:text-sm font-bold text-slate-900">
+            Emergency Medical ID (ICE)
           </h3>
         </div>
 
         <button
           onClick={handlePrint}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold shadow-xs transition-all"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold shadow-xs transition-all shrink-0"
         >
           <Printer className="w-3.5 h-3.5 text-teal-400" />
           <span>Print / Save Card</span>
@@ -86,18 +86,18 @@ export default function MedicalIdCard({ user, profile }: MedicalIdCardProps) {
       </div>
 
       {/* The Printable Medical ID Card */}
-      <div className="medical-id-card relative bg-gradient-to-br from-slate-900 via-slate-800 to-[#0B2545] text-white rounded-2xl p-6 shadow-md border border-slate-700 overflow-hidden print:border-2 print:border-black print:text-black print:bg-white print:shadow-none">
+      <div className="medical-id-card relative bg-gradient-to-br from-slate-900 via-slate-800 to-[#0B2545] text-white rounded-2xl p-4 sm:p-6 shadow-md border border-slate-700 overflow-hidden print:border-2 print:border-black print:text-black print:bg-white print:shadow-none">
         {/* Card Header Strip */}
-        <div className="flex items-start justify-between border-b border-white/10 pb-4 mb-4 print:border-b-2 print:border-black">
+        <div className="flex flex-wrap sm:flex-nowrap items-start justify-between gap-3 border-b border-white/10 pb-4 mb-4 print:border-b-2 print:border-black">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-red-600 flex items-center justify-center text-white font-black text-lg shadow-sm print:border print:border-black">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-red-600 flex items-center justify-center text-white font-black text-base sm:text-lg shadow-sm print:border print:border-black shrink-0">
               +
             </div>
             <div>
-              <div className="text-[10px] uppercase font-bold tracking-widest text-red-400 print:text-red-700">
+              <div className="text-[9px] sm:text-[10px] uppercase font-bold tracking-widest text-red-400 print:text-red-700">
                 Medical Alert & Emergency ID
               </div>
-              <h2 className="text-lg font-extrabold tracking-tight text-white print:text-black">
+              <h2 className="text-base sm:text-lg font-extrabold tracking-tight text-white print:text-black">
                 {user?.full_name || 'Cardholder'}
               </h2>
             </div>
