@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   Loader2,
   ArrowRight,
+  Activity
 } from 'lucide-react';
 
 export default function EditHealthProfilePage() {
@@ -21,6 +22,7 @@ export default function EditHealthProfilePage() {
 
   const [loadingInitial, setLoadingInitial] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [runningAssessment, setRunningAssessment] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
@@ -156,12 +158,21 @@ export default function EditHealthProfilePage() {
     try {
       await api.updateProfile(profileId, payload);
       setSuccess(true);
-      setTimeout(() => {
-        router.push('/dashboard');
-      }, 1000);
+      setLoading(false);
     } catch (err: any) {
       setError(err.message || 'Failed to update health metrics.');
       setLoading(false);
+    }
+  };
+
+  const handleRunAssessmentNow = async () => {
+    try {
+      setRunningAssessment(true);
+      const assessment = await api.runAssessment(profileId);
+      router.push(`/prediction/results/${assessment.id}`);
+    } catch (err: any) {
+      setError(err.message || 'Failed to trigger assessment.');
+      setRunningAssessment(false);
     }
   };
 
@@ -190,10 +201,41 @@ export default function EditHealthProfilePage() {
         )}
 
         {success && (
-          <div className="mb-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center gap-3">
-            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-            <div className="text-xs text-emerald-800 font-semibold">
-              Health profile updated successfully! Redirecting...
+          <div className="mb-6 p-6 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-950 shadow-xs">
+            <div className="flex items-center gap-2.5 font-bold text-base mb-1 text-emerald-900">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+              <span>Health Profile Updated Successfully!</span>
+            </div>
+            <p className="text-xs text-emerald-800 mb-4 leading-relaxed">
+              Your updated vitals and clinical measurements are now saved in your active record.
+              To evaluate these measurements with our machine learning models, run a new assessment now.
+            </p>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={handleRunAssessmentNow}
+                disabled={runningAssessment}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#0B2545] hover:bg-navy-800 text-white font-bold text-xs shadow-xs transition-all hover:scale-[1.01] disabled:opacity-60"
+              >
+                {runningAssessment ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-teal-400" />
+                    <span>Evaluating Risk Predictions...</span>
+                  </>
+                ) : (
+                  <>
+                    <Activity className="w-4 h-4 text-teal-400" />
+                    <span>Run AI Assessment with Updated Measurements</span>
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push('/dashboard')}
+                className="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 font-semibold text-xs transition-colors"
+              >
+                Return to Dashboard
+              </button>
             </div>
           </div>
         )}

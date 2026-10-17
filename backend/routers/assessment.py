@@ -16,7 +16,7 @@ from schemas.assessment import (
 from schemas.health import HealthProfileResponse
 from services.auth_service import get_current_user
 from services.health_service import get_user_latest_profile, get_user_profile_by_id
-from ml.predict import run_all_disease_predictions, run_counterfactual_simulation
+from ml.predict import run_all_disease_predictions, run_counterfactual_simulation, FEATURE_CONFIGS
 
 router = APIRouter(prefix="/api/assessments", tags=["Assessments & Risk Predictions"])
 
@@ -37,6 +37,19 @@ def format_assessment_item(assessment: Assessment) -> AssessmentResponse:
             except Exception:
                 recs = []
 
+        missing = []
+        instructions = None
+        if pr.status == "unavailable" and assessment.health_profile:
+            cfg = FEATURE_CONFIGS.get(pr.disease)
+            if cfg:
+                for req in cfg.get("required_fields", []):
+                    if getattr(assessment.health_profile, req, None) is None:
+                        missing.append(req)
+                if missing:
+                    instructions = f"Missing required measurements: {', '.join(missing)}. Please update your health information."
+                else:
+                    instructions = "Measurements have been updated since this assessment was conducted. Run a new assessment to evaluate your updated vitals."
+
         results_list.append(PredictionResultItem(
             id=pr.id,
             disease=pr.disease,
@@ -46,8 +59,8 @@ def format_assessment_item(assessment: Assessment) -> AssessmentResponse:
             recommendations=recs,
             model_version=pr.model_version,
             status=pr.status,
-            missing_fields=None,
-            instructions=None
+            missing_fields=missing if missing else None,
+            instructions=instructions
         ))
 
     profile_resp = None
