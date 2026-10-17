@@ -92,15 +92,6 @@ export default function AssessmentResultsPage() {
     );
   }
 
-  const isInputNowAvailable = (disease: string) => {
-    if (!assessment?.health_profile) return false;
-    const p = assessment.health_profile;
-    if (disease === 'diabetes') return p.blood_glucose !== null && p.blood_glucose !== undefined;
-    if (disease === 'cardiovascular') return p.total_cholesterol !== null && p.total_cholesterol !== undefined;
-    if (disease === 'ckd') return p.serum_creatinine !== null && p.blood_urea !== null && p.blood_urea !== undefined;
-    return false;
-  };
-
   const getDiseaseDisplayName = (key: string) => {
     switch (key) {
       case 'diabetes': return 'Type 2 Diabetes Mellitus';
@@ -332,71 +323,30 @@ export default function AssessmentResultsPage() {
                     )}
                   </>
                 ) : result.status === 'unavailable' ? (
-                  isInputNowAvailable(result.disease) ? (
-                    /* Measurements were added since this assessment was conducted! */
-                    <div className="py-6 px-4 text-center max-w-lg mx-auto bg-teal-50/70 rounded-2xl border border-teal-200">
-                      <div className="w-10 h-10 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center mx-auto mb-3">
-                        <Sparkles className="w-5 h-5 text-teal-600" />
+                  /* Missing Inputs State */
+                  <div className="py-6 text-center max-w-md mx-auto">
+                    <AlertTriangle className="w-8 h-8 text-amber-500 mx-auto mb-2" />
+                    <h4 className="text-sm font-bold text-[#0B2545] mb-1">Inputs Missing for this Model</h4>
+                    <p className="text-xs text-slate-500 mb-4 leading-relaxed">
+                      {result.instructions || 'Missing required clinical laboratory measurements to compute an authentic prediction.'}
+                    </p>
+                    {result.missing_fields && result.missing_fields.length > 0 && (
+                      <div className="mb-4 inline-block px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs font-mono">
+                        Missing: {result.missing_fields.join(', ')}
                       </div>
-                      <h4 className="text-sm font-bold text-[#0B2545] mb-1">
-                        Measurements Available in Your Health Profile!
-                      </h4>
-                      <p className="text-xs text-slate-600 mb-4 leading-relaxed">
-                        {result.disease === 'diabetes' && (
-                          <>You have saved Fasting Blood Glucose (<strong>{assessment.health_profile?.blood_glucose} mg/dL</strong>) in your health profile. </>
-                        )}
-                        {result.disease === 'cardiovascular' && (
-                          <>You have saved Total Cholesterol (<strong>{assessment.health_profile?.total_cholesterol} mg/dL</strong>) in your health profile. </>
-                        )}
-                        {result.disease === 'ckd' && (
-                          <>You have saved Kidney Lab Markers in your health profile. </>
-                        )}
-                        Assessment #{assessment.id} is an immutable record from when that reading was absent. Click below to evaluate your updated measurements and compute your live risk score.
-                      </p>
-                      <button
-                        onClick={handleRunNewAssessment}
-                        disabled={runningNew}
-                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs shadow-xs transition-all hover:scale-[1.01] disabled:opacity-60"
-                      >
-                        {runningNew ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin text-white" />
-                            <span>Calculating Updated Risk...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Activity className="w-4 h-4" />
-                            <span>Calculate Updated Risk Score Now</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  ) : (
-                    /* Missing Inputs State */
-                    <div className="py-6 text-center max-w-md mx-auto">
-                      <AlertTriangle className="w-8 h-8 text-amber-500 mx-auto mb-2" />
-                      <h4 className="text-sm font-bold text-[#0B2545] mb-1">Inputs Missing for this Model</h4>
-                      <p className="text-xs text-slate-500 mb-4 leading-relaxed">
-                        {result.instructions || 'Missing required clinical laboratory measurements to compute an authentic prediction.'}
-                      </p>
-                      {result.missing_fields && result.missing_fields.length > 0 && (
-                        <div className="mb-4 inline-block px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs font-mono">
-                          Missing: {result.missing_fields.join(', ')}
-                        </div>
+                    )}
+                    <div>
+                      {assessment.health_profile && (
+                        <Link
+                          href={`/health/edit/${assessment.health_profile.id}`}
+                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-semibold text-xs transition-colors"
+                        >
+                          <FileEdit className="w-3.5 h-3.5" />
+                          <span>Add Missing Measurements</span>
+                        </Link>
                       )}
-                      <div>
-                        {assessment.health_profile && (
-                          <Link
-                            href={`/health/edit/${assessment.health_profile.id}`}
-                            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-semibold text-xs transition-colors"
-                          >
-                            <FileEdit className="w-3.5 h-3.5" />
-                            <span>Add Missing Measurements</span>
-                          </Link>
-                        )}
-                      </div>
                     </div>
-                  )
+                  </div>
                 ) : (
                   /* Model Not Trained State */
                   <div className="py-6 text-center max-w-md mx-auto">

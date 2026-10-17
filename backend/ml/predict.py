@@ -29,7 +29,7 @@ FEATURE_CONFIGS = {
         "model_file": os.path.join(SAVED_MODELS_DIR, "ckd.joblib"),
         "metrics_file": os.path.join(SAVED_MODELS_DIR, "ckd_metrics.json"),
         "display_name": "Chronic Kidney Disease",
-        "required_fields": ["age", "systolic_bp", "serum_creatinine", "blood_urea"],
+        "required_fields": ["age", "systolic_bp", "serum_creatinine"],
         "train_script": "python ml/train_ckd.py"
     }
 }
@@ -142,8 +142,8 @@ def build_feature_row_ckd(profile: HealthProfile) -> pd.DataFrame:
         "bp": float(profile.systolic_bp),
         "sg": np.nan, "al": np.nan, "su": np.nan, "rbc": np.nan, "pc": np.nan, "pcc": np.nan, "ba": np.nan,
         "bgr": float(profile.blood_glucose) if profile.blood_glucose else np.nan,
-        "bu": float(profile.blood_urea),
-        "sc": float(profile.serum_creatinine),
+        "bu": float(profile.blood_urea) if profile.blood_urea is not None else np.nan,
+        "sc": float(profile.serum_creatinine) if profile.serum_creatinine is not None else np.nan,
         "sod": np.nan, "pot": np.nan, "hemo": np.nan, "pcv": np.nan, "wc": np.nan, "rc": np.nan,
         "htn": htn,
         "dm": dm,

@@ -16,13 +16,17 @@ from schemas.assessment import (
 from schemas.health import HealthProfileResponse
 from services.auth_service import get_current_user
 from services.health_service import get_user_latest_profile, get_user_profile_by_id
-from ml.predict import run_all_disease_predictions, run_counterfactual_simulation, FEATURE_CONFIGS
+from services.recommendation_service import generate_preventive_recommendations
+from ml.predict import run_all_disease_predictions, run_counterfactual_simulation, FEATURE_CONFIGS, predict_single_disease
 
 router = APIRouter(prefix="/api/assessments", tags=["Assessments & Risk Predictions"])
 
-def format_assessment_item(assessment: Assessment) -> AssessmentResponse:
-    """Format SQLAlchemy Assessment into full Pydantic response"""
+def format_assessment_item(assessment: Assessment, db: Session = None) -> AssessmentResponse:
+    """Format SQLAlchemy Assessment into full Pydantic response, auto-evaluating models if inputs are now complete"""
     results_list = []
+    has_db_updates = False
+    all_recs = None
+
     for pr in assessment.prediction_results:
         factors = []
         recs = []
@@ -45,10 +49,23 @@ def format_assessment_item(assessment: Assessment) -> AssessmentResponse:
                 for req in cfg.get("required_fields", []):
                     if getattr(assessment.health_profile, req, None) is None:
                         missing.append(req)
-                if missing:
-                    instructions = f"Missing required measurements: {', '.join(missing)}. Please update your health information."
+                if not missing:
+                    # All required measurements are now present in user's profile! Auto-evaluate on the fly!
+                    if all_recs is None:
+                        all_recs = generate_preventive_recommendations(assessment.health_profile)
+                    res = predict_single_disease(pr.disease, assessment.health_profile, all_recs)
+                    if res.get("status") == "ok":
+                        pr.status = "ok"
+                        pr.risk_score = res.get("risk_score")
+                        pr.risk_category = res.get("risk_category")
+                        pr.contributing_factors = json.dumps(res.get("contributing_factors", []))
+                        pr.recommendations = json.dumps(res.get("recommendations", []))
+                        pr.model_version = res.get("model_version")
+                        factors = res.get("contributing_factors", [])
+                        recs = res.get("recommendations", [])
+                        has_db_updates = True
                 else:
-                    instructions = "Measurements have been updated since this assessment was conducted. Run a new assessment to evaluate your updated vitals."
+                    instructions = f"Missing required measurements: {', '.join(missing)}. Please update your health information."
 
         results_list.append(PredictionResultItem(
             id=pr.id,
@@ -62,6 +79,13 @@ def format_assessment_item(assessment: Assessment) -> AssessmentResponse:
             missing_fields=missing if missing else None,
             instructions=instructions
         ))
+
+    if has_db_updates and db:
+        try:
+            db.commit()
+            db.refresh(assessment)
+        except Exception:
+            db.rollback()
 
     profile_resp = None
     if assessment.health_profile:
@@ -177,7 +201,7 @@ def get_user_assessment_history(
         Assessment.user_id == current_user.id
     ).order_by(Assessment.id.desc()).all()
 
-    return [format_assessment_item(a) for a in assessments]
+    return [format_assessment_item(a, db=db) for a in assessments]
 
 @router.get("/{assessment_id}", response_model=AssessmentResponse)
 def get_single_assessment(
@@ -200,7 +224,7 @@ def get_single_assessment(
             detail="Assessment record not found or access denied."
         )
 
-    return format_assessment_item(assessment)
+    return format_assessment_item(assessment, db=db)
 
 @router.post("/simulate", response_model=CounterfactualSimulationResponse)
 def simulate_counterfactual_risk(
