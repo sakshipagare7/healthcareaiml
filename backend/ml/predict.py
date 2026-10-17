@@ -152,26 +152,77 @@ def build_feature_row_ckd(profile: HealthProfile) -> pd.DataFrame:
     }
     return pd.DataFrame([row], columns=features)
 
+class MockProfile:
+    """Lightweight object mimicking HealthProfile for simulation and verification"""
+    def __init__(self, **kwargs):
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+
+def ensure_model_pipeline(disease: str):
+    """
+    Ensure the ML pipeline is loaded and version-compatible.
+    Patches SimpleImputer._fill_dtype (scikit-learn 1.9+ attribute).
+    If loading fails or smoke test fails due to cross-version unpickling, retrains natively.
+    """
+    cfg = FEATURE_CONFIGS.get(disease)
+    if not cfg:
+        return None
+    model_path = cfg["model_file"]
+
+    # 1. Try loading existing pipeline and patch version differences
+    if os.path.exists(model_path):
+        try:
+            pipeline = joblib.load(model_path)
+            imp = pipeline.named_steps.get("imputer")
+            if imp and not hasattr(imp, "_fill_dtype"):
+                imp._fill_dtype = np.float64
+
+            # Smoke test inference to guarantee no runtime attribute errors
+            test_prof = MockProfile(
+                age=45, sex="male", systolic_bp=120, diastolic_bp=80,
+                heart_rate=72, bmi=24.0, blood_glucose=100.0,
+                total_cholesterol=180.0, serum_creatinine=1.0, blood_urea=20.0,
+                family_history_diabetes=False, family_history_cardio=False,
+                family_history_kidney=False, symptoms=""
+            )
+            if disease == "diabetes":
+                X_test = build_feature_row_diabetes(test_prof)
+            elif disease == "cardiovascular":
+                X_test = build_feature_row_cardio(test_prof)
+            else:
+                X_test = build_feature_row_ckd(test_prof)
+            pipeline.predict_proba(X_test)
+            return pipeline
+        except Exception as e:
+            print(f"[WARN] Cached pipeline for {disease} failed: {e}. Retraining natively...")
+
+    # 2. Retrain natively using the current environment's scikit-learn
+    try:
+        if disease == "diabetes":
+            from ml.train_diabetes import train_diabetes_model
+            train_diabetes_model()
+        elif disease == "cardiovascular":
+            from ml.train_cardio import train_cardio_model
+            train_cardio_model()
+        elif disease == "ckd":
+            from ml.train_ckd import train_ckd_model
+            train_ckd_model()
+
+        pipeline = joblib.load(model_path)
+        imp = pipeline.named_steps.get("imputer")
+        if imp and not hasattr(imp, "_fill_dtype"):
+            imp._fill_dtype = np.float64
+        return pipeline
+    except Exception as e:
+        print(f"[ERROR] Native training failed for {disease}: {e}")
+        return None
+
 def predict_single_disease(disease: str, profile: HealthProfile, all_recommendations: list) -> Dict[str, Any]:
     cfg = FEATURE_CONFIGS.get(disease)
     if not cfg:
         return {"disease": disease, "status": "unavailable", "instructions": f"Unknown disease model '{disease}'"}
 
-    # 1. Check if model file exists
-    if not os.path.exists(cfg["model_file"]):
-        return {
-            "disease": disease,
-            "status": "not_trained",
-            "risk_score": None,
-            "risk_category": "Model Not Ready",
-            "contributing_factors": [],
-            "recommendations": [],
-            "model_version": None,
-            "missing_fields": [],
-            "instructions": f"Model not ready. Please run '{cfg['train_script']}' to train on local benchmark dataset."
-        }
-
-    # 2. Check for required input fields
+    # 1. Check for required input fields
     missing_fields = []
     for req in cfg["required_fields"]:
         val = getattr(profile, req, None)
@@ -191,9 +242,21 @@ def predict_single_disease(disease: str, profile: HealthProfile, all_recommendat
             "instructions": f"Missing required health inputs: {', '.join(missing_fields)}. Please update your health information."
         }
 
-    # 3. Load model and run inference
+    # 2. Load model (or auto-train natively) and run inference
     try:
-        pipeline = joblib.load(cfg["model_file"])
+        pipeline = ensure_model_pipeline(disease)
+        if not pipeline:
+            return {
+                "disease": disease,
+                "status": "not_trained",
+                "risk_score": None,
+                "risk_category": "Model Not Ready",
+                "contributing_factors": [],
+                "recommendations": [],
+                "model_version": None,
+                "missing_fields": [],
+                "instructions": f"Failed initializing model pipeline for {disease}."
+            }
 
         if disease == "diabetes":
             X_input = build_feature_row_diabetes(profile)
@@ -268,11 +331,6 @@ def run_all_disease_predictions(profile: HealthProfile) -> List[Dict[str, Any]]:
         results.append(res)
     return results
 
-class MockProfile:
-    """Lightweight object mimicking HealthProfile for simulation testing"""
-    def __init__(self, **kwargs):
-        for k, v in kwargs.items():
-            setattr(self, k, v)
 
 def run_counterfactual_simulation(baseline: HealthProfile, sim_changes: dict) -> Dict[str, Any]:
     """

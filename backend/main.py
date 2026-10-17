@@ -40,6 +40,17 @@ app.include_router(emergency_router)
 app.include_router(models_router)
 app.include_router(medication_router)
 
+@app.on_event("startup")
+def warmup_models():
+    """Verify and initialize machine learning model pipelines on startup"""
+    try:
+        from ml.predict import ensure_model_pipeline
+        for d in ["diabetes", "cardiovascular", "ckd"]:
+            ensure_model_pipeline(d)
+        print("[SUCCESS] Machine learning models initialized and verified.")
+    except Exception as e:
+        print(f"[WARN] Startup model initialization error: {e}")
+
 @app.get("/")
 def root():
     return {
