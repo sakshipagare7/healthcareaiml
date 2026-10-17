@@ -214,6 +214,14 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     'Content-Type': 'application/json',
   };
 
+  // Attach token from localStorage if present
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      defaultHeaders['Authorization'] = `Bearer ${token}`;
+    }
+  }
+
   const response = await fetch(`${API_BASE}${endpoint}`, {
     ...options,
     headers: {
@@ -224,6 +232,9 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   });
 
   if (!response.ok) {
+    if (response.status === 401 && typeof window !== 'undefined') {
+      localStorage.removeItem('access_token');
+    }
     let errorDetail = 'An error occurred';
     try {
       const errorJson = await response.json();

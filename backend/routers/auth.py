@@ -1,3 +1,4 @@
+import os
 from fastapi import APIRouter, Depends, HTTPException, status, Response
 from sqlalchemy.orm import Session
 from database import get_db
@@ -9,6 +10,7 @@ router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
 COOKIE_NAME = "access_token"
 COOKIE_MAX_AGE = 86400  # 24 hours in seconds
+IS_PROD = os.getenv("RENDER") is not None or os.getenv("ENVIRONMENT") == "production"
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
 def register(user_in: UserRegister, response: Response, db: Session = Depends(get_db)):
@@ -38,7 +40,7 @@ def register(user_in: UserRegister, response: Response, db: Session = Depends(ge
         httponly=True,
         max_age=COOKIE_MAX_AGE,
         samesite="lax",
-        secure=False  # Set to False for local development on localhost
+        secure=IS_PROD
     )
 
     return TokenResponse(
@@ -64,7 +66,7 @@ def login(user_in: UserLogin, response: Response, db: Session = Depends(get_db))
         httponly=True,
         max_age=COOKIE_MAX_AGE,
         samesite="lax",
-        secure=False
+        secure=IS_PROD
     )
 
     return TokenResponse(
@@ -75,7 +77,7 @@ def login(user_in: UserLogin, response: Response, db: Session = Depends(get_db))
 
 @router.post("/logout")
 def logout(response: Response):
-    response.delete_cookie(key=COOKIE_NAME, samesite="lax")
+    response.delete_cookie(key=COOKIE_NAME, samesite="lax", secure=IS_PROD)
     return {"message": "Successfully logged out. Session terminated."}
 
 @router.get("/me", response_model=UserResponse)

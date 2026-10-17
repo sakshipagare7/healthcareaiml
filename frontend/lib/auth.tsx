@@ -26,6 +26,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(me);
     } catch {
       setUser(null);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('access_token');
+      }
     } finally {
       setLoading(false);
     }
@@ -37,12 +40,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (data: any) => {
     const res = await api.login(data);
+    if (res?.access_token && typeof window !== 'undefined') {
+      localStorage.setItem('access_token', res.access_token);
+    }
     setUser(res.user);
     router.push('/dashboard');
   };
 
   const register = async (data: any) => {
     const res = await api.register(data);
+    if (res?.access_token && typeof window !== 'undefined') {
+      localStorage.setItem('access_token', res.access_token);
+    }
     setUser(res.user);
     router.push('/dashboard');
   };
@@ -53,6 +62,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (e) {
       console.error('Logout error:', e);
     } finally {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('access_token');
+      }
       setUser(null);
       // Hard redirect to clear browser state and reload login page
       window.location.href = '/login';

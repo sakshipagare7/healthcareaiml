@@ -35,8 +35,8 @@ export default function RegisterPage() {
 
     try {
       await register({
-        full_name: fullName,
-        email,
+        full_name: fullName.trim(),
+        email: email.trim(),
         password,
         confirm_password: confirmPassword,
       });
