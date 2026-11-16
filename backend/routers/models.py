@@ -63,6 +63,13 @@ def run_model_diagnostics():
         from models.user import User
         db_info["engine_dialect"] = engine.name
         db_info["has_database_url_env"] = bool(os.getenv("DATABASE_URL"))
+        try:
+            import psycopg2
+            db_info["psycopg2_installed"] = True
+            db_info["psycopg2_version"] = psycopg2.__version__
+        except Exception as p_err:
+            db_info["psycopg2_installed"] = False
+            db_info["psycopg2_error"] = str(p_err)
         db = next(get_db())
         try:
             db_info["user_count"] = db.query(User).count()

@@ -21,15 +21,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  const refreshUser = async () => {
+  const refreshUser = async (retries = 2) => {
+    // If no access token exists in localStorage, don't stall with network calls
+    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+    if (!token) {
+      setUser(null);
+      setLoading(false);
+      return;
+    }
+
     try {
       const me = await api.getMe();
       setUser(me);
-    } catch {
-      setUser(null);
-      if (typeof window !== 'undefined') {
+    } catch (err: any) {
+      const errorMsg = String(err?.message || '');
+      const isColdStartOrTimeout =
+        errorMsg.includes('504') ||
+        errorMsg.includes('502') ||
+        errorMsg.includes('503') ||
+        errorMsg.includes('Failed to fetch') ||
+        errorMsg.includes('NetworkError');
+
+      // If server is cold-starting on free hosting, retry after a delay before giving up
+      if (isColdStartOrTimeout && retries > 0) {
+        console.warn(`Cloud server waking up. Retrying session verification in 2.5s (${retries} attempts left)...`);
+        await new Promise((resolve) => setTimeout(resolve, 2500));
+        return refreshUser(retries - 1);
+      }
+
+      // Only purge saved token if backend explicitly reported unauthorized / expired session
+      const isExplicitUnauthorized =
+        errorMsg.includes('401') ||
+        errorMsg.includes('credentials') ||
+        errorMsg.includes('expired') ||
+        errorMsg.includes('Unauthorized');
+
+      if (isExplicitUnauthorized && typeof window !== 'undefined') {
         localStorage.removeItem('access_token');
       }
+      setUser(null);
     } finally {
       setLoading(false);
     }

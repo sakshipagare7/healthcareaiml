@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { HeartPulse, Lock, Mail, ArrowRight, AlertCircle, Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, user, loading: authLoading } = useAuth();
   const router = useRouter();
 
   const [email, setEmail] = useState('');
@@ -15,15 +15,39 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // If already authenticated, redirect straight to dashboard
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.push('/dashboard');
+    }
+  }, [user, authLoading, router]);
+
+  // Proactively wake up backend cold start in background as soon as login page opens
+  useEffect(() => {
+    fetch('/api/healthcheck', { cache: 'no-store' }).catch(() => {});
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
     try {
-      await login({ email: email.trim(), password });
+      const cleanedEmail = email.trim().toLowerCase();
+      await login({ email: cleanedEmail, password });
     } catch (err: any) {
-      setError(err.message || 'Login failed. Please check your credentials.');
+      const msg = String(err?.message || '');
+      if (
+        msg.includes('504') ||
+        msg.includes('502') ||
+        msg.includes('503') ||
+        msg.includes('Failed to fetch') ||
+        msg.includes('NetworkError')
+      ) {
+        setError('The cloud server is currently waking up from sleep. Please wait 10-15 seconds and try signing in again.');
+      } else {
+        setError(msg || 'Login failed. Please check your credentials.');
+      }
     } finally {
       setLoading(false);
     }
@@ -65,6 +89,9 @@ export default function LoginPage() {
                 <input
                   type="email"
                   required
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
                   placeholder="name@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -82,6 +109,9 @@ export default function LoginPage() {
                 <input
                   type="password"
                   required
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}

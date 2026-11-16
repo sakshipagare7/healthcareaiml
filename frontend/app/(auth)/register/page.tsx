@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { HeartPulse, Lock, Mail, User as UserIcon, ArrowRight, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
 
 export default function RegisterPage() {
-  const { register } = useAuth();
+  const { register, user, loading: authLoading } = useAuth();
   const router = useRouter();
 
   const [fullName, setFullName] = useState('');
@@ -16,6 +16,18 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // If already authenticated, redirect straight to dashboard
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.push('/dashboard');
+    }
+  }, [user, authLoading, router]);
+
+  // Proactively wake up backend cold start in background as soon as register page opens
+  useEffect(() => {
+    fetch('/api/healthcheck', { cache: 'no-store' }).catch(() => {});
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,14 +46,26 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
+      const cleanedEmail = email.trim().toLowerCase();
       await register({
         full_name: fullName.trim(),
-        email: email.trim(),
+        email: cleanedEmail,
         password,
         confirm_password: confirmPassword,
       });
     } catch (err: any) {
-      setError(err.message || 'Registration failed. An account with this email may already exist.');
+      const msg = String(err?.message || '');
+      if (
+        msg.includes('504') ||
+        msg.includes('502') ||
+        msg.includes('503') ||
+        msg.includes('Failed to fetch') ||
+        msg.includes('NetworkError')
+      ) {
+        setError('The cloud server is currently waking up from sleep. Please wait 10-15 seconds and try creating your account again.');
+      } else {
+        setError(msg || 'Registration failed. An account with this email may already exist.');
+      }
     } finally {
       setLoading(false);
     }
@@ -100,6 +124,9 @@ export default function RegisterPage() {
                 <input
                   type="email"
                   required
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
                   placeholder="name@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -117,6 +144,9 @@ export default function RegisterPage() {
                 <input
                   type="password"
                   required
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
                   placeholder="At least 6 characters"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -134,6 +164,9 @@ export default function RegisterPage() {
                 <input
                   type="password"
                   required
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
                   placeholder="Re-enter password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}

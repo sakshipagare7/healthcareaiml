@@ -14,7 +14,8 @@ IS_PROD = os.getenv("RENDER") is not None or os.getenv("ENVIRONMENT") == "produc
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
 def register(user_in: UserRegister, response: Response, db: Session = Depends(get_db)):
-    existing = db.query(User).filter(User.email == user_in.email.lower()).first()
+    cleaned_email = user_in.email.lower().strip()
+    existing = db.query(User).filter(User.email == cleaned_email).first()
     if existing:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -24,7 +25,7 @@ def register(user_in: UserRegister, response: Response, db: Session = Depends(ge
     hashed_pwd = hash_password(user_in.password)
     user = User(
         full_name=user_in.full_name.strip(),
-        email=user_in.email.lower().strip(),
+        email=cleaned_email,
         password_hash=hashed_pwd
     )
     db.add(user)
@@ -51,7 +52,8 @@ def register(user_in: UserRegister, response: Response, db: Session = Depends(ge
 
 @router.post("/login", response_model=TokenResponse)
 def login(user_in: UserLogin, response: Response, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == user_in.email.lower().strip()).first()
+    cleaned_email = user_in.email.lower().strip()
+    user = db.query(User).filter(User.email == cleaned_email).first()
     if not user or not verify_password(user_in.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

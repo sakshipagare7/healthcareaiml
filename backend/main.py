@@ -5,8 +5,11 @@ from database import engine, Base
 import models  # Ensures models are imported for SQLAlchemy metadata
 from routers import auth_router, health_router, assessment_router, emergency_router, models_router, medication_router
 
-# Initialize database schema tables on startup
-Base.metadata.create_all(bind=engine)
+# Ensure database schema tables are created
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception as e:
+    print(f"[WARN] Initial database schema creation: {e}")
 
 app = FastAPI(
     title="AI-Powered Preventive Healthcare and Emergency Response System",

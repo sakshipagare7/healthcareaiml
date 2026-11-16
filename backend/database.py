@@ -8,9 +8,14 @@ if DATABASE_URL:
     # Render and Heroku use postgres://, but SQLAlchemy 2.0 requires postgresql://
     if DATABASE_URL.startswith("postgres://"):
         DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    
+    # Configure production pool with pre-ping and recycle to prevent stale connections on cloud providers
     engine = create_engine(
         DATABASE_URL,
-        pool_pre_ping=True
+        pool_pre_ping=True,
+        pool_recycle=300,
+        pool_size=5,
+        max_overflow=10
     )
 else:
     # Fallback to local SQLite database
