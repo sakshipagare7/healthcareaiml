@@ -26,7 +26,7 @@ def run_model_diagnostics():
     """
     Diagnostic endpoint to test model loading and predict_single_disease on Render
     """
-    import sys, traceback, sklearn, numpy, pandas, joblib
+    import os, sys, traceback, sklearn, numpy, pandas, joblib
     from ml.predict import predict_single_disease, MockProfile
 
     test_profile = MockProfile(
@@ -57,11 +57,29 @@ def run_model_diagnostics():
                 "traceback": traceback.format_exc()
             }
 
+    db_info = {}
+    try:
+        from database import engine, get_db
+        from models.user import User
+        db_info["engine_dialect"] = engine.name
+        db_info["has_database_url_env"] = bool(os.getenv("DATABASE_URL"))
+        db = next(get_db())
+        try:
+            db_info["user_count"] = db.query(User).count()
+            users = db.query(User.email).limit(10).all()
+            db_info["recent_user_emails"] = [u[0] for u in users]
+        finally:
+            db.close()
+    except Exception as e:
+        db_info["error"] = str(e)
+
     return {
         "python_version": sys.version,
         "sklearn_version": sklearn.__version__,
         "numpy_version": numpy.__version__,
         "pandas_version": pandas.__version__,
         "joblib_version": joblib.__version__,
+        "database": db_info,
         "predictions": results
     }
+
